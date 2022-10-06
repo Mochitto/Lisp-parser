@@ -1,0 +1,15 @@
+{
+  "name": "lisp_parser",
+  "version": "1.0.0",
+  "description": "A project for recurse center's admission ",
+  "main": "lexer.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Mochitto",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.1.2"
+  }
+}
