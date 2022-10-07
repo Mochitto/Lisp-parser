@@ -12,12 +12,16 @@ function get_tokens(message) {
 }
 const testing_tokens = {
     whitespaces : {
-        input : "     \n\t\n",
+        input : "     \n\t\n ;; this is a comment lmao \"ay\"",
         output : []
     },
     string : {
         input:'("Hello \\"world\\"!")',
-        output: [{type: "punc", value: "("}, {type: "str", value: "Hello \"world\"!"}, {type: "punc", value: ")"}]
+        output: [
+            {type: "punc", value: "("}, 
+            {type: "str", value: "Hello \"world\"!"}, 
+            {type: "punc", value: ")"}
+            ]
     },
     recurse_example: {
         input: "(first (list 1 (+ 2 3) 9))",
