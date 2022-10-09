@@ -2,7 +2,7 @@ function tokenizer(stream) {
     let current = null
     const keywords = [
         "and", "or", "not", "t", "NIL", "max", 
-        "min", "format", "first", "list"]
+        "min", "format", "first", "list", "then"]
     return {
         peek: peek,
         next: next,

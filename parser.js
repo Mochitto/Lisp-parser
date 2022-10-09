@@ -17,6 +17,8 @@
 => Get tests up to make the building easier
 */
 
+// variables and 
+
 function lisp_parser(tokenStream) {
   let FALSE = {type: "bool", value: false}
 
@@ -71,7 +73,7 @@ function lisp_parser(tokenStream) {
   // refer to https://lisperator.net/pltut/parser/the-parser
   function delimited(start, stop, parser) {
     let content = []
-    skip_punc(start)
+    if (start) skip_punc(start)  // Useful both for calls and prog
     while (!tokenStream.eof()) {
       if (is_punc(stop)) break // stop if the next token closes the contanier
       content.push(parser())
@@ -82,6 +84,7 @@ function lisp_parser(tokenStream) {
 
   function parse_prog() {
     let prog = delimited("(", ")", parse_expression)
+    // TODO: check for keyword, lambda or operation?
     if (prog.length == 0) return FALSE
     else if (prog.length == 1) return prog[0]
     else return {type:"prog", prog: prog}
@@ -92,8 +95,8 @@ function lisp_parser(tokenStream) {
     // and operators are just keywords, so they must be in the beginning of a prog, making it easier to check for them.
     let tok = is_op()
     if (tok) {
-      let first = parse_atom()
-      let second = parse_atom()
+      let first = parse_atom()  // FIXME : check after defining parse atom and parse expression
+      let second = parse_atom()  // FIXME
       return {
         type: "binary",
         operator: tok.value,
@@ -104,14 +107,23 @@ function lisp_parser(tokenStream) {
     tokenStream.croak("The operation char wasn't recognized during parsing")
   }
 
-  // TODO: Decide when to call parse binary since it's not "maybe binary"
-  // TODO: Focus on how to work with prog 
+  function parse_varname() {
+    let name = tokenStream.next()
+    if (name.type != "var") tokenStream.croak(`Expected variable name but got ${JSON.stringify(name)}`) 
+    return name.value
+  }
 
-  function maybe_call()
-  function parse_call()
+  function parse_lambda() {
+    return {
+      type: "call",
+      args: delimited("", ")", parse_varname),
+      body: parse_expression()
+    }
+  }
+
   function parse_atom()
   function parse_expression()
-  function parse_varname()
+
   function parse_if() // account for skip_then 
   function parse_bool()
 }
