@@ -64,66 +64,71 @@ function lisp_parser(tokenStream) {
     else tokenStream.croak(`Expecting operation but got: "${char}"`)
   }
 
-  function unexpected() {
-    tokenStream.croak(`Unexpected token: "${JSON.stringify(tokenStream.peek())}"`)
+  function unexpected(tok) {
+    tokenStream.croak(`Unexpected token: "${JSON.stringify(tok)}"`)
   }
 
   // ------------- This function processes tokens that are inside of a container, putting them together in a list. 
   // There's the possibilty of adding a separator (in js commas and semicolons), but there's no need in lisp
   // refer to https://lisperator.net/pltut/parser/the-parser
-  function delimited(start, stop, parser) {
+  function delimited(start, stop, praser=parse_atom) {
+    let type = null
     let content = []
-    if (start) skip_punc(start)  // Useful both for calls and prog
+
+    skip_punc(start)
+    let first
+
+    // First atom must be a keyword, function or operation
+    if (is_keyword()) {first = tokenStream.next(); type = "function"} 
+    else if (is_op()) {first = tokenStream.next(); type = "binary"}
+    else tokenStream.croak(`${start} is not a function nor an operation`)
+
+    // Get the arguments of the keyword/function/operation
     while (!tokenStream.eof()) {
       if (is_punc(stop)) break // stop if the next token closes the contanier
-      content.push(parser())
+      content.push(praser())
     }
     skip_punc(stop)
-    return content
+
+    // Return either a function type or a binary type
+    if (type == "function") return {type: "function", name: first.value, args: content}
+    else if (type == "binary") {
+      if (content.lenght > 2) {console.log(content.length); tokenStream.croak("Too many arguments for binary operation")}
+      return {type: "binary", operator: first.value, left: content[0], right: content[1]}
+    }
   }
 
-  function parse_prog() {
-    let prog = delimited("(", ")", parse_expression)
-    // TODO: check for keyword, lambda or operation?
+  function parse_expression() {
+    let prog = delimited("(", ")")
     if (prog.length == 0) return FALSE
-    else if (prog.length == 1) return prog[0]
-    else return {type:"prog", prog: prog}
+    else return prog
   }
 
-  function parse_binary() {  // SIDE-EFFECT ONLY
-    // In the tutorial the function is "maybe binary", but in lisp there is no need for precedence
-    // and operators are just keywords, so they must be in the beginning of a prog, making it easier to check for them.
-    let tok = is_op()
-    if (tok) {
-      let first = parse_atom()  // FIXME : check after defining parse atom and parse expression
-      let second = parse_atom()  // FIXME
-      return {
-        type: "binary",
-        operator: tok.value,
-        left: first,
-        right: second
-      }
-    }
-    tokenStream.croak("The operation char wasn't recognized during parsing")
-  }
-
-  function parse_varname() {
-    let name = tokenStream.next()
-    if (name.type != "var") tokenStream.croak(`Expected variable name but got ${JSON.stringify(name)}`) 
-    return name.value
-  }
-
-  function parse_lambda() {
-    return {
-      type: "call",
-      args: delimited("", ")", parse_varname),
-      body: parse_expression()
+  function parse_atom() {
+    if (is_punc("(")) return parse_expression()
+    else {
+      let tok = tokenStream.next()
+      if (tok.type == "var" || tok.type == "num" || tok.type == "str") {
+        return tok
+      } else unexpected(tok)
     }
   }
 
-  function parse_atom()
-  function parse_expression()
+  function parse_if() {}
+  function parse_bool() {}
 
-  function parse_if() // account for skip_then 
-  function parse_bool()
+function parse_varname() {
+  let name = tokenStream.next()
+  if (name.type != "var") tokenStream.croak(`Expected variable name but got ${JSON.stringify(name)}`) 
+  return name.value
 }
+
+function parse_lambda() {
+  return {
+    type: "call",
+    args: delimited("", ")", parse_varname),
+    body: parse_expression()
+  }
+}}
+
+module.exports = lisp_parser

@@ -19,3 +19,7 @@ As for the lexer and tokenizer, the process seems simple, but translating the pr
 Today I was able to build half of the parser.
 I feel as if my understanding of recursive functions is getting stronger; I'm also very happy about how I was able to bend the guide to my needs, modifiying the examples to accomodate for Lisp's syntax.
 
+**09/10/2022**
+Got closer to completing the parser :)
+Spent most of the time reading to understand how to modify the guide.
+
