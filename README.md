@@ -23,3 +23,5 @@ I feel as if my understanding of recursive functions is getting stronger; I'm al
 Got closer to completing the parser :)
 Spent most of the time reading to understand how to modify the guide.
 
+**10/10/2022**
+The parser is now missing just if statements and booleans!
