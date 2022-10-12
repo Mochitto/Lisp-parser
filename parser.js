@@ -71,41 +71,66 @@ function lisp_parser(tokenStream) {
   // ------------- This function processes tokens that are inside of a container, putting them together in a list. 
   // There's the possibilty of adding a separator (in js commas and semicolons), but there's no need in lisp
   // refer to https://lisperator.net/pltut/parser/the-parser
-  function delimited(start, stop, praser=parse_atom) {
+  function delimited(start, stop, parser=parse_atom) {
     let type = null
     let content = []
-
+    
     skip_punc(start)
     let first
 
     // First atom must be a keyword, function or operation
-    if (is_keyword()) {first = tokenStream.next(); type = "function"} 
-    else if (is_op()) {first = tokenStream.next(); type = "binary"}
-    else tokenStream.croak(`${start} is not a function nor an operation`)
+    if (parser == parse_atom) {
+      if (is_keyword("if")) {first = tokenStream.next(); type = "if"}
+      else if (is_keyword()) {first = tokenStream.next(); type = "function"} 
+      else if (is_op()) {first = tokenStream.next(); type = "binary"}
+      else if (is_punc(stop)) {skip_punc(stop); return FALSE}
+      else if (is_punc(start)) {
+        skip_punc(start); 
+        first = is_keyword("lambda")
+        if (first) {
+          skip_kw("lambda")
+          type= {type: "lambda", params: delimited("(", ")", parse_varname), body: parse_atom()}
+          skip_punc(stop)
+        }
+      }
+      else tokenStream.croak(`${JSON.stringify(tokenStream.next())} is not a function nor an operation`)
+  }
 
     // Get the arguments of the keyword/function/operation
     while (!tokenStream.eof()) {
       if (is_punc(stop)) break // stop if the next token closes the contanier
-      content.push(praser())
+      content.push(parser())
     }
     skip_punc(stop)
 
     // Return either a function type or a binary type
-    if (type == "function") return {type: "function", name: first.value, args: content}
+    if (type == "if") {
+      if (content.length == 2) return {type: "if", cond: content[0], then: content[1]}
+      else if (content.length == 3) return {type: "if", cond: content[0], then: content[1], else: content[2]}
+      else if (content.length < 2) tokenStream.croak("An if statements needs at least a condition and a result")
+      else tokenStream.croak("An if statement takes at most a condition and two results")
+    }
+    else if (type == "function") return {type: "function", name: first.value, args: content}
     else if (type == "binary") {
-      if (content.lenght > 2) {console.log(content.length); tokenStream.croak("Too many arguments for binary operation")}
+      if (content.lenght > 2) {tokenStream.croak("Too many arguments for binary operation")}
       return {type: "binary", operator: first.value, left: content[0], right: content[1]}
     }
+    else if (content[0].type == "var") return content
+    else if (typeof(type) == "object") {
+      type.args = content
+      return type
+    }
+    else unexpected(`${type} is not expected to be at the beginnnig of an S-expression`)
   }
 
   function parse_expression() {
     let prog = delimited("(", ")")
-    if (prog.length == 0) return FALSE
-    else return prog
+    return prog
   }
 
   function parse_atom() {
     if (is_punc("(")) return parse_expression()
+    else if (is_keyword("t")||is_keyword("nil")||is_keyword("T")||is_keyword("NIL")) return parse_bool()
     else {
       let tok = tokenStream.next()
       if (tok.type == "var" || tok.type == "num" || tok.type == "str") {
@@ -114,21 +139,19 @@ function lisp_parser(tokenStream) {
     }
   }
 
-  function parse_if() {}
-  function parse_bool() {}
+  function parse_bool() {
+    let tok = tokenStream.next()
+    return tok.value.toLowerCase() == "t" ? {type:"bool", value: true} : FALSE
+  }
 
 function parse_varname() {
   let name = tokenStream.next()
   if (name.type != "var") tokenStream.croak(`Expected variable name but got ${JSON.stringify(name)}`) 
-  return name.value
+  return name
 }
 
 function parse_lambda() {
-  return {
-    type: "call",
-    args: delimited("", ")", parse_varname),
-    body: parse_expression()
-  }
+// TODO: consider (lambda as starter and parse params, body and args together
 }}
 
 module.exports = lisp_parser

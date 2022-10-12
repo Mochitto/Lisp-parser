@@ -1,8 +1,8 @@
 function tokenizer(stream) {
     let current = null
     const keywords = [
-        "and", "or", "not", "t", "NIL", "max", 
-        "min", "format", "first", "list", "then"]  // FIXME is then a thing?
+        "and", "or", "not", "t", "T", "NIL", "nil", "max", 
+        "min", "format", "first", "list", "then", "if", "lambda"]
     return {
         peek: peek,
         next: next,
