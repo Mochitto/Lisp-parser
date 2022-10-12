@@ -25,3 +25,7 @@ Spent most of the time reading to understand how to modify the guide.
 
 **10/10/2022**
 The parser is now missing just if statements, booleans and lambdas!
+
+**11/10/2022**
+I was able to get everything to work, but the code needs some serious refactoring :')
+I also still need to implement variables and functions definitions.
