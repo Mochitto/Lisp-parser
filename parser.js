@@ -155,3 +155,85 @@ function parse_lambda() {
 }}
 
 module.exports = lisp_parser
+
+// TODO: identifiers (kw, vars, funcs) are case insensitive
+
+// TODO: functions definitions 
+
+/* 
+atoms: bool, strings, numbers, (), identifiers, global vars
+=> 
+parsing_atoms {
+  check if list "(" => parse list (creates nesting and recursion) ! Add corner case of empty = bool
+  check if identifier => 
+    if boolean kw => parse bool
+    if kw => parse kw: 
+    if defun => parse defun
+    if lambda => parse lambda
+    if let => parse let
+    if defvar => parse defvar
+    if defparameter => parse defparameter
+  check if identifier, number, string => return as is
+
+  throw unexpected error
+}
+
+parsing lists () {
+  create container
+
+  skip start punc
+  MUST start with kw or var => return a type: call
+  
+  while not end of stream:
+    if end punc, break
+    else parse_atom (will call special parsing if needed, call list if nested) and push to container
+  
+  skip end punc, if missing throw error
+
+  return container
+}
+
+parsing params () {
+  if punc, skip start punc
+  if var, save var name else throw error
+  if value, add value to var name // This can be thrown away later if not lambda
+  if punc, skip end pung
+  return {type: var, name: varname, value: value}
+}
+
+parse top level () {
+  create container
+
+  while not end of stream
+    parse atom and push to container
+  
+  return {type: tree, body:container}
+}
+
+
+lambda: ((lambda (params) body) args) => ((lambda (a b) (+ a b)) 1 2) ;3 OR ((lambda (a) a) 3) ;4
+The params MUST be a list ()
+
+local vars: (let (var var (var value)) (body: returning value)) ex. (let ((x 1)) x) ;1 OR (let (a b) a) ;NIL
+
+global vars: Will ommit the docstring 
+(defvar *name* initial-value) // can also not have an initial-value, throws error if called without value
+(defparameter *name* initial-value)  // Must have value, throws error if no value
+
+functions: (defun name-of-fun (param) "docstring" body) // docstring is omitted in this parser
+ex. (defun ababa (a) a) OR (defun (a b c) (+ a (* b c)))
+
+let, functions and lambda seem to use the same validator for their params.
+If you pass (a 1) to lambda or defun, the value gets thrown away.
+lambda: kw params body
+function: kw params body
+let: kw params body
+
+They can be parsed as the same thing and dealt with differently on the interpreter:
+let and defun do not need args, they end by themselves
+lambda needs args, because it's like calling a function
+
+
+
+
+*/
