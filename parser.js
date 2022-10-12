@@ -166,39 +166,50 @@ atoms: bool, strings, numbers, (), identifiers, global vars
 parsing_atoms {
   check if list "(" => parse list (creates nesting and recursion) ! Add corner case of empty = bool
   check if identifier => 
-    if boolean kw => parse bool
-    if kw => parse kw: 
-    if defun => parse defun
-    if lambda => parse lambda
-    if let => parse let
-    if defvar => parse defvar
-    if defparameter => parse defparameter
+    if boolean kw => parse bool 
+        (check value, return {type: bool, value: true or false}) NO PROB
+    // THESE ARE ALL CALLED BY LISTS
+    if kw => parse kw (return type: call, name: kw name, args: parse_while)
+    if defun => parse defun (return kind: func, type: def, parse params[0], get body (parse while))
+    if lambda => parse lambda (return type: call, name: lambda, params: parse params[0], body: parse while)
+    if let => parse let (return type: call, name:let, params: parse params[0], args: params[1], body: parse while)
+    if defvar => parse defvar (return type: def, kind: var, name: parse atom, ?value: parse atom)
+    if defparameter => parse defparameter (return type: def, kind: var, name: parse atom, value: parse atom)
   check if identifier, number, string => return as is
 
   throw unexpected error
 }
 
-parsing lists () {
+parsing lists (params?=no) {
   create container
+  create function holder 
+  create template holder?
 
   skip start punc
-  MUST start with kw or var => return a type: call
-  
-  while not end of stream:
-    if end punc, break
-    else parse_atom (will call special parsing if needed, call list if nested) and push to container
+  (check for lambda/let/defun???
+    if lambda: lambda goes into function holder but needs a special check!
+    let is kw! just need special parsing
+    definitions need special parsing but start with a kw, no need for special cheks)
+  MUST start with kw or var or is lambda (need to next two times) => return a type: call and store in function holder
   
   skip end punc, if missing throw error
 
-  return container
+  return {type: call, body:container)
+}
+
+parse while(break char) {
+  while not end of stream:
+    if end punc, break
+    else (if no params) parse_atom (will call special parsing if needed, call list if nested) and push to container
+          (if params) parse_params
 }
 
 parsing params () {
   if punc, skip start punc
   if var, save var name else throw error
-  if value, add value to var name // This can be thrown away later if not lambda
+  if value, parse atom // This can be thrown away later if not lambda
   if punc, skip end pung
-  return {type: var, name: varname, value: value}
+  return [{type: var, name: varname}, {type: atom type, value: value}]
 }
 
 parse top level () {
