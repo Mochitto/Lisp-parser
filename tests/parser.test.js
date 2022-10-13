@@ -18,7 +18,7 @@ const parsingDictionary = {
         ]
     },
     lambda: {
-        input: tokenizer(lexer("((lambda (a b c) (+ a (+ b c))) 1 2 3)")),
+        input: tokenizer(lexer("((lambda ((a 1) b c) (+ a (+ b c))) 1 2 3)")),
         output: [
         ]
     }

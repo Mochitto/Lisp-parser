@@ -19,162 +19,198 @@
 
 // variables and 
 
-function lisp_parser(tokenStream) {
-  let FALSE = {type: "bool", value: false}
 
+function lisp_parser(tokenStream) {
   return parse_toplevel()
 
   function parse_toplevel() {  // Starter function
     let content = []
     while (!tokenStream.eof()) {
-      content.push(parse_expression())
+      content.push(parse_atom())
     }
-    return {type: "prog", prog: content}
+    return {type: "root", tree: content}
   }
 
   function is_punc(char) {
     let tok = tokenStream.peek()
-    return tok && tok.type == "punc" && (!char || tok.value == char) && tok 
-    // The third requirement is used to ask for a specific punc if present
-    // The last is used to return the token, if everything is True
+    return tok.type == "punc" && (!char || tok.value == char) && tok 
   }
 
   function skip_punc(char) {
     if (is_punc(char)) tokenStream.next();
-    else tokenStream.croak(`Expecting punctuation but got: "${char}"`)
+    else tokenStream.croak(`Expecting punctuation but got: "${JSON.stringify(tokenStream.peek())}"`)
   }
 
   function is_keyword(kw) {
     let tok = tokenStream.peek()
-    return tok && tok.type == "kw" && (!kw || tok.value == kw) && tok  // The third requirement is used to ask for a specific keyword if present
-  }
-
-  function skip_kw(kw) {
-    if (is_keyword(kw)) tokenStream.next();
-    else tokenStream.croak(`Expecting keyword but got: "${kw}"`)
+    return tok.type == "kw" && (!kw || tok.value == kw) && tok 
   }
 
   function is_op(char) {
     let tok = tokenStream.peek()
-    return tok && tok.type == "op" && (!char || tok.value == char) && tok // The third requirement is used to ask for a specific punc if present
+    return tok.type == "op" && (!char || tok.value == char) && tok 
   }
 
+  function is_atom() {
+    let tok = tokenStream.peek()
+    return tok.type == "var" || tok.type == "str" || tok.type == "num"
+  }
+
+  function get_global_varname() {
+    let tok = tokenStream.next()
+    if (tok.type != "globalVar") tokenStream.croak(`Expected global var but got ${JSON.stringify(tok)}`)
+    return tok.value
+  }
+
+  function get_varname() {
+    let tok = tokenStream.next()
+    if (tok.type != "var") tokenStream.croak(`Expected var but got ${JSON.stringify(tok)}`)
+    return tok.value
+  }
+    
   function skip_op(char) {
     if (is_op(char)) tokenStream.next()
-    else tokenStream.croak(`Expecting operation but got: "${char}"`)
+    else tokenStream.croak(`Expecting operation but got: "${JSON.stringify(tokenStream.peek())}"`)
+  }
+
+  function skip_kw(char) {
+    if (is_keyword(char)) tokenStream.next()
+    else tokenStream.croak(`Expecting operation but got: "${JSON.stringify(tokenStream.peek())}"`)
   }
 
   function unexpected(tok) {
     tokenStream.croak(`Unexpected token: "${JSON.stringify(tok)}"`)
   }
 
-  // ------------- This function processes tokens that are inside of a container, putting them together in a list. 
-  // There's the possibilty of adding a separator (in js commas and semicolons), but there's no need in lisp
-  // refer to https://lisperator.net/pltut/parser/the-parser
-  function delimited(start, stop, parser=parse_atom) {
-    let type = null
-    let content = []
-    
-    skip_punc(start)
-    let first
-
-    // First atom must be a keyword, function or operation
-    if (parser == parse_atom) {
-      if (is_keyword("if")) {first = tokenStream.next(); type = "if"}
-      else if (is_keyword()) {first = tokenStream.next(); type = "function"} 
-      else if (is_op()) {first = tokenStream.next(); type = "binary"}
-      else if (is_punc(stop)) {skip_punc(stop); return FALSE}
-      else if (is_punc(start)) {
-        skip_punc(start); 
-        first = is_keyword("lambda")
-        if (first) {
-          skip_kw("lambda")
-          type= {type: "lambda", params: delimited("(", ")", parse_varname), body: parse_atom()}
-          skip_punc(stop)
-        }
-      }
-      else tokenStream.croak(`${JSON.stringify(tokenStream.next())} is not a function nor an operation`)
-  }
-
-    // Get the arguments of the keyword/function/operation
-    while (!tokenStream.eof()) {
-      if (is_punc(stop)) break // stop if the next token closes the contanier
-      content.push(parser())
+  function parse_atom() {
+    if (is_punc("(")) return parse_sExpression()
+    else if (is_atom()) {
+      return tokenStream.next()
     }
-    skip_punc(stop)
+    else if (is_op()) {
+      let op = tokenStream.next().value
+      let atoms = parse_until(")")
+      if (atoms.length != 2) tokenStream.croak(`Binary operations need two arguments. ${atoms.length} given.`)
+      let left = atoms[0]
+      let right = atoms[1]
 
-    // Return either a function type or a binary type
-    if (type == "if") {
-      if (content.length == 2) return {type: "if", cond: content[0], then: content[1]}
-      else if (content.length == 3) return {type: "if", cond: content[0], then: content[1], else: content[2]}
-      else if (content.length < 2) tokenStream.croak("An if statements needs at least a condition and a result")
+      if ((left.type == "num" || left.type == "var" || left.length) || (right.type == "num" || left.type == "var" || right.length)) return {type: "binary", operator: op, left: left, right: right} // Allows only numbers or non-empty arrays
+      else tokenStream.croak(`Binary operations are possible only between numbers.\nLeft side: ${JSON.stringify(left)}\nRight side: ${JSON.stringify(right)}`)
+    }
+    else if (is_keyword("if")) {
+      skip_kw("if")
+      let atoms = parse_until(")")
+      if (atoms.length == 2) return {type: "if", cond: atoms[0], then: atoms[1]}
+      else if (atoms.length == 3) return {type: "if", cond: atoms[0], then: atoms[1], else: atoms[2]}
+      else if (atoms.length < 2) tokenStream.croak(`An if statements needs at least a condition and a result. ${JSON.stringify(atoms)}`)
       else tokenStream.croak("An if statement takes at most a condition and two results")
     }
-    else if (type == "function") return {type: "function", name: first.value, args: content}
-    else if (type == "binary") {
-      if (content.lenght > 2) {tokenStream.croak("Too many arguments for binary operation")}
-      return {type: "binary", operator: first.value, left: content[0], right: content[1]}
+    else if (is_keyword()) {
+      let keyword = tokenStream.next().value
+      switch (keyword) {
+        // Booleans
+        case ("nil" || "t"): 
+          return {type: "bool", value: keyword == "t" ? true : false}
+        // Def global vars
+        case ("defvar"): 
+          let ret = {type: "def", kind: "globalVar", name: get_global_varname()}
+          if (tokenStream.peek() != ")") ret.value = parse_atom()
+          return ret 
+        case ("defparameter"): 
+          return {type: "def", kind: "globalVar", name: get_global_varname(), value: parse_atom()}
+        // Def functions
+        case ("defun"): {
+          let [params, args] = parse_params()
+          return {type: "def", kind: "func", name: get_varname(), params: params, body: parse_until(")")}
+        }
+        // Lambda and Let
+        case ("lambda"): {
+          let [params, args] = parse_params()
+          return {type:"call", name:"lambda", params: params, body: parse_until(")")}
+        }
+        case ("let"): { 
+          let [params, args] = parse_params()
+          return [{type: "call", name:"lambda", params: params, body: parse_until(")")}, ...args]
+        }
+        // Other function calls
+        default:
+          return {type: "call", name: keyword}
+      }
+    } else unexpected(tokenStream.next())
+  }
+
+  function parse_sExpression() {
+    let container = []
+
+    skip_punc("(")
+    if (is_punc(")")) {tokenStream.next(); return {type: "bool", value: false}}
+    let first = parse_atom()
+    if (first.length || first.name == "lambda") {skip_punc(")"); return first} // let and lambda keyword case, no need to get container
+    else if (first.type == "def") {skip_punc(")"); return first} // no need for container
+    else if (first.type == "if") {skip_punc(")"); return first} // no need for container
+    else if (first.type == "binary") {skip_punc(")"); return first} // no need for container
+    else if (first.type == "call") {} // ok 
+    else throw new Error(`${first} can't be at the beginning of a S-expression`) // Avoids bools corner case
+
+    container.push(first, ...parse_until(")"))
+    skip_punc(")")
+
+    return container
+  }
+
+  function parse_until(char, parser=parse_atom) {
+    let container = []
+    while (!tokenStream.eof()) {
+      console.log(JSON.stringify(tokenStream.peek()))
+      if (tokenStream.peek().value == char) {break}
+      else container.push(parser()) 
     }
-    else if (content[0].type == "var") return content
-    else if (typeof(type) == "object") {
-      type.args = content
-      return type
+    return container
+  }
+
+  function parse_params() {
+    skip_punc("(")
+    let params = []
+    let args = []
+    while (!is_punc(")")) {
+      if (is_punc("(")) { // Used by let ((a 1) (b 2) c)
+        skip_punc("(") 
+        let content = parse_until(")")
+        if (content.length > 2 || content.length == 0) tokenStream.croak(`Functions' parameters must have at most a name and a value at least a value. ${content.length} atoms found.`)
+        if (content[0].type != "var") tokenStream.croak(`Functions' parameters must be in this order: var atom. ${content[0]} was found as first.`)
+        if (content[1].type == "var") tokenStream.croak(`Functions' parameters must be in this order: var atom. The variable ${content[1]} was found as second.`)
+        params.push(content[0])
+        args.push(content[1] ? content[1] : false)
+        skip_punc(")")
+      } else { // (a b c)
+        let token = tokenStream.next()
+        if (token.type != "var") tokenStream.croak(`Functions' parameters must be variables. ${JSON.stringify(tok)} was found.`)
+        params.push(token)
+        args.push(false)
+      }
     }
-    else unexpected(`${type} is not expected to be at the beginnnig of an S-expression`)
-  }
-
-  function parse_expression() {
-    let prog = delimited("(", ")")
-    return prog
-  }
-
-  function parse_atom() {
-    if (is_punc("(")) return parse_expression()
-    else if (is_keyword("t")||is_keyword("nil")||is_keyword("T")||is_keyword("NIL")) return parse_bool()
-    else {
-      let tok = tokenStream.next()
-      if (tok.type == "var" || tok.type == "num" || tok.type == "str") {
-        return tok
-      } else unexpected(tok)
+    skip_punc(")")
+    return [params, args]
     }
   }
-
-  function parse_bool() {
-    let tok = tokenStream.next()
-    return tok.value.toLowerCase() == "t" ? {type:"bool", value: true} : FALSE
-  }
-
-function parse_varname() {
-  let name = tokenStream.next()
-  if (name.type != "var") tokenStream.croak(`Expected variable name but got ${JSON.stringify(name)}`) 
-  return name
-}
-
-function parse_lambda() {
-// TODO: consider (lambda as starter and parse params, body and args together
-}}
 
 module.exports = lisp_parser
-
-// TODO: identifiers (kw, vars, funcs) are case insensitive
-
-// TODO: functions definitions 
 
 /* 
 atoms: bool, strings, numbers, (), identifiers, global vars
 => 
 parsing_atoms {
   check if list "(" => parse list (creates nesting and recursion) ! Add corner case of empty = bool
-  check if identifier => 
-    if boolean kw => parse bool 
+  check if kw => 
+    Y if boolean kw => parse bool 
         (check value, return {type: bool, value: true or false}) NO PROB
-    // THESE ARE ALL CALLED BY LISTS
-    if kw => parse kw (return type: call, name: kw name, args: parse_while)
-    if defun => parse defun (return kind: func, type: def, parse params[0], get body (parse while))
-    if lambda => parse lambda (return type: call, name: lambda, params: parse params[0], body: parse while)
-    if let => parse let (return type: call, name:let, params: parse params[0], args: params[1], body: parse while)
-    if defvar => parse defvar (return type: def, kind: var, name: parse atom, ?value: parse atom)
-    if defparameter => parse defparameter (return type: def, kind: var, name: parse atom, value: parse atom)
+    // THESE ARE ALL CALLED INSIDE OF LIST
+    Y if kw => parse kw (return type: call, name: kw name, args: parse_while)
+    Y if defun => parse defun (return kind: func, type: def, parse params[0], get body (parse while))
+    Y if lambda => parse lambda (return type: call, name: lambda, params: parse params[0], body: parse while)
+    Y if let => parse let (return type: call, name:let, params: parse params[0], args: params[1], body: parse while)
+    Y if defvar => parse defvar (return type: def, kind: var, name: parse atom, ?value: parse atom)
+    Y if defparameter => parse defparameter (return type: def, kind: var, name: parse atom, value: parse atom)
   check if identifier, number, string => return as is
 
   throw unexpected error
@@ -182,33 +218,38 @@ parsing_atoms {
 
 parsing lists (params?=no) {
   create container
-  create function holder 
-  create template holder?
 
   skip start punc
   (check for lambda/let/defun???
-    if lambda: lambda goes into function holder but needs a special check!
-    let is kw! just need special parsing
-    definitions need special parsing but start with a kw, no need for special cheks)
+    if var => turn var token into call token, make it throw error based on scope in interpreter
+    if lambda: check return value from parse atom and if type: call and name:lambda, skip end punc and return this (works both for lambda and let)
+    let is lambda just need special parsing
+    definitions need special parsing but start with a kw, no need for special checks)
   MUST start with kw or var or is lambda (need to next two times) => return a type: call and store in function holder
   
   skip end punc, if missing throw error
 
-  return {type: call, body:container)
+  return {type: call, body:container! if it was let, container is already included)
 }
 
-parse while(break char) {
+parse until(break char) {
+  create container
   while not end of stream:
     if end punc, break
-    else (if no params) parse_atom (will call special parsing if needed, call list if nested) and push to container
-          (if params) parse_params
+    parse_atom (will call special parsing if needed, call list if nested) and push to container
+  return container if more than 1, else single atom
 }
 
 parsing params () {
+  // return [0: all params/vars, 1: all values]
+  // CAREFUL: can be either ((a 1)) or (a b c)
+  // Skip first punc, if punc => (skip punc, first match is param, second is value group, skip end punc) => should be own function? or while loop?  
+  // if var => var group
   if punc, skip start punc
   if var, save var name else throw error
-  if value, parse atom // This can be thrown away later if not lambda
-  if punc, skip end pung
+  if value, parse atom // This can be thrown away later if not lambda 
+  else value = "" to allow for mixing defs with and without values
+  if punc, skip end pung if no punc
   return [{type: var, name: varname}, {type: atom type, value: value}]
 }
 
@@ -243,8 +284,6 @@ let: kw params body
 They can be parsed as the same thing and dealt with differently on the interpreter:
 let and defun do not need args, they end by themselves
 lambda needs args, because it's like calling a function
-
-
-
-
 */
+
+// TODO: Refactor the whole code, starting over

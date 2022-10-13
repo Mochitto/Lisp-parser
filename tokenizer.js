@@ -127,5 +127,5 @@ function tokenizer(stream) {
 module.exports = tokenizer
 
 // TODO: add global vars *something* => if peek != whitespace then it must be a global. throw error if no end 
-// FIXME: turn all identifiers to uppercase
+// FIXME: turn all identifiers to lowercase
 // FIXME: how to differentiate between var, globvar and funcs? should just be ident and globvar and defined during the eval?
