@@ -33,3 +33,6 @@ I also still need to implement variables and functions definitions.
 **12/10/2022**
 Went down a complete refactoring; spent most of the time rewriting the logic behind the parser, this time by myself.
 The guide was awesome, but starting over, with the thought of parsing lisp (instead of modifying the grammar given in the guide) feels much better.
+
+**13/10/2022**
+Rewrote the parser for the most part. There is a bug that I don't understand related to the lambda function.
