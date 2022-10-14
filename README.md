@@ -36,3 +36,7 @@ The guide was awesome, but starting over, with the thought of parsing lisp (inst
 
 **13/10/2022**
 Rewrote the parser for the most part. There is a bug that I don't understand related to the lambda function.
+
+**14/10/2022**
+The lambda bug prooved to be much harder to understand than any other bug I met before. In the end, the wisest thing was just using... The debugger tool :')
+It's now fixed and ready to move to testing and writing the interpreter.
