@@ -36,7 +36,9 @@ function lisp_parser(tokenStream) {
     return tok.type == "punc" && (!char || tok.value == char) && tok 
   }
 
-  function skip_punc(char) {
+  function skip_punc(char, place="") {
+    
+    
     if (is_punc(char)) tokenStream.next();
     else tokenStream.croak(`Expecting punctuation but got: "${JSON.stringify(tokenStream.peek())}"`)
   }
@@ -83,6 +85,8 @@ function lisp_parser(tokenStream) {
   }
 
   function parse_atom() {
+    
+
     if (is_punc("(")) return parse_sExpression()
     else if (is_atom()) {
       return tokenStream.next()
@@ -126,7 +130,7 @@ function lisp_parser(tokenStream) {
         // Lambda and Let
         case ("lambda"): {
           let [params, args] = parse_params()
-          return {type:"call", name:"lambda", params: params, body: parse_until(")")}
+          return {type:"lambda", name:"lambda", params: params, body: parse_until(")")}
         }
         case ("let"): { 
           let [params, args] = parse_params()
@@ -142,14 +146,18 @@ function lisp_parser(tokenStream) {
   function parse_sExpression() {
     let container = []
 
-    skip_punc("(")
+    skip_punc("(") // add promise to check for no call
     if (is_punc(")")) {tokenStream.next(); return {type: "bool", value: false}}
+    
+    // check if first type is in a given array? => only functions would return objects, if list it means (()) (should fix let tho) 
     let first = parse_atom()
-    if (first.length || first.name == "lambda") {skip_punc(")"); return first} // let and lambda keyword case, no need to get container
+
+    if (first.length) {skip_punc(")"); return first} // no need to get container
+    else if (first.type == "lambda") {skip_punc(")"); first.type = "call"; return first} // no need to get container
+    else if (first.type == "call") {} // ok, only type that needs to continue
     else if (first.type == "def") {skip_punc(")"); return first} // no need for container
     else if (first.type == "if") {skip_punc(")"); return first} // no need for container
     else if (first.type == "binary") {skip_punc(")"); return first} // no need for container
-    else if (first.type == "call") {} // ok 
     else throw new Error(`${first} can't be at the beginning of a S-expression`) // Avoids bools corner case
 
     container.push(first, ...parse_until(")"))
@@ -161,9 +169,10 @@ function lisp_parser(tokenStream) {
   function parse_until(char, parser=parse_atom) {
     let container = []
     while (!tokenStream.eof()) {
-      console.log(JSON.stringify(tokenStream.peek()))
       if (tokenStream.peek().value == char) {break}
-      else container.push(parser()) 
+      else {
+        let atom = parser()
+        container.push(atom)} 
     }
     return container
   }
