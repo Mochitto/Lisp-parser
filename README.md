@@ -40,3 +40,7 @@ Rewrote the parser for the most part. There is a bug that I don't understand rel
 **14/10/2022**
 The lambda bug prooved to be much harder to understand than any other bug I met before. In the end, the wisest thing was just using... The debugger tool :')
 It's now fixed and ready to move to testing and writing the interpreter.
+
+**15/10/2022**
+I've read on how to build an interpreter, and I think I should be able to write a part of it soon!
+I hope to be able to send the project tonight or tomorrow morning :)
