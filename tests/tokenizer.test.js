@@ -16,7 +16,7 @@ const testing_tokens = {
         output : []
     },
     global_var : {
-        input : "(dEfVar *global* (* 2 12))",
+        input : "(dEfVar *global* (* 2 12)) ;; This shouldn't matter",
         output : [
             {type: "punc", value:"("},
             {type:"kw", value:"defvar"},
