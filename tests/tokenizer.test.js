@@ -15,6 +15,32 @@ const testing_tokens = {
         input : "     \n\t\n ;; this is a comment lmao \"ay\"",
         output : []
     },
+    global_var : {
+        input : "(dEfVar *global* (* 2 12))",
+        output : [
+            {type: "punc", value:"("},
+            {type:"kw", value:"defvar"},
+            {type:"var", value: "*global*"},
+            {type:"punc", value:"("},
+            {type:"op", value:"*"},
+            {type:"num", value:2},
+            {type:"num", value:12},
+            {type:"punc", value:")"},
+            {type:"punc", value:")"}
+        ]
+    },
+    if_statement : {
+        input : '(If () "Hello \\"world\\"!" "Not hello")',
+        output : [
+            {type: "punc", value:"("},
+            {type:"kw", value:"if"},
+            {type: "punc", value:"("},
+            {type:"punc", value:")"},
+            {type:"str", value:"Hello \"world\"!"},
+            {type:"str", value:"Not hello"},
+            {type:"punc", value:")"}
+        ]
+    },
     string : {
         input:'("Hello \\"world\\"!")',
         output: [
