@@ -113,19 +113,27 @@ function lisp_parser(tokenStream) {
       let keyword = tokenStream.next().value
       switch (keyword) {
         // Booleans
-        case ("nil" || "t"): 
+        case ("nil"): 
+        case ("t"): 
           return {type: "bool", value: keyword == "t" ? true : false}
         // Def global vars
         case ("defvar"): 
-          let ret = {type: "def", kind: "globalVar", name: get_global_varname()}
-          if (tokenStream.peek() != ")") ret.value = parse_atom()
+          let ret = {type: "def", kind: "globalVar", name: get_varname()}
+          if (tokenStream.peek().value != ")") ret.value = parse_atom()
+          else ret.value = false
           return ret 
         case ("defparameter"): 
-          return {type: "def", kind: "globalVar", name: get_global_varname(), value: parse_atom()}
+        let variable = get_varname()
+        if (tokenStream.peek().value == ")") throw Error("Defparameter requires a value. Only variable was given.")
+        else {
+          let value  = parse_atom()
+          return {type: "def", kind: "globalVar", name: variable, value: value}
+        }
         // Def functions
         case ("defun"): {
+          let name = get_varname()
           let [params, args] = parse_params()
-          return {type: "def", kind: "func", name: get_varname(), params: params, body: parse_until(")")}
+          return {type: "def", kind: "func", name: name, params: params, body: parse_until(")")}
         }
         // Lambda and Let
         case ("lambda"): {
@@ -294,5 +302,3 @@ They can be parsed as the same thing and dealt with differently on the interpret
 let and defun do not need args, they end by themselves
 lambda needs args, because it's like calling a function
 */
-
-// TODO: Refactor the whole code, starting over

@@ -2,7 +2,8 @@ function tokenizer(stream) {
     let current = null
     const keywords = [
         "and", "or", "not", "t", "T", "NIL", "nil", "max", 
-        "min", "format", "first", "list", "then", "if", "lambda"]
+        "min", "format", "first", "list", "then", "if", "lambda", "defvar",
+        "defparameter", "defun"]
     return {
         peek: peek,
         next: next,
@@ -39,7 +40,7 @@ function tokenizer(stream) {
     };
 
     function is_id_start(char) {
-        return /[a-z_]/i.test(char)
+        return /[a-z_\*]/i.test(char)
     }
 
     function is_op_char(char) {
@@ -55,7 +56,7 @@ function tokenizer(stream) {
     }
 
     function is_id(char) { // You can also add extra chars here vvvvvvvvvvvv
-        return is_id_start(char) // || "other characters".indexOf(char) >= 0
+        return is_id_start(char) || /[-]/.test(stream.peek()) // || "other characters".indexOf(char) >= 0
     }
 
     function is_keyword(keyword) {
@@ -76,7 +77,8 @@ function tokenizer(stream) {
     }
 
     function read_ident() {
-        let id = read_while(is_id) 
+        let id = read_while(is_id).toLowerCase()
+        if (id == "*") return {type: "op", value: id}
         return {type: is_keyword(id) ? "kw" : "var", value: id}
     }
 
@@ -125,7 +127,3 @@ function tokenizer(stream) {
 }
 
 module.exports = tokenizer
-
-// TODO: add global vars *something* => if peek != whitespace then it must be a global. throw error if no end 
-// FIXME: turn all identifiers to lowercase
-// FIXME: how to differentiate between var, globvar and funcs? should just be ident and globvar and defined during the eval?
