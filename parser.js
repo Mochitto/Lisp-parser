@@ -58,12 +58,6 @@ function lisp_parser(tokenStream) {
     return tok.type == "var" || tok.type == "str" || tok.type == "num"
   }
 
-  function get_global_varname() {
-    let tok = tokenStream.next()
-    if (tok.type != "globalVar") tokenStream.croak(`Expected global var but got ${JSON.stringify(tok)}`)
-    return tok.value
-  }
-
   function get_varname() {
     let tok = tokenStream.next()
     if (tok.type != "var") tokenStream.croak(`Expected var but got ${JSON.stringify(tok)}`)
@@ -118,7 +112,7 @@ function lisp_parser(tokenStream) {
           return {type: "bool", value: keyword == "t" ? true : false}
         // Def global vars
         case ("defvar"): 
-          let ret = {type: "def", kind: "globalVar", name: get_varname()}
+          let ret = {type: "def", kind: "var", name: get_varname()}
           if (tokenStream.peek().value != ")") ret.value = parse_atom()
           else ret.value = false
           return ret 
@@ -127,7 +121,7 @@ function lisp_parser(tokenStream) {
         if (tokenStream.peek().value == ")") throw Error("Defparameter requires a value. Only variable was given.")
         else {
           let value  = parse_atom()
-          return {type: "def", kind: "globalVar", name: variable, value: value}
+          return {type: "def", kind: "var", name: variable, value: value}
         }
         // Def functions
         case ("defun"): {
