@@ -160,9 +160,11 @@ function lisp_parser(tokenStream) {
     else if (first.type == "def") {skip_punc(")"); return first} // no need for container
     else if (first.type == "if") {skip_punc(")"); return first} // no need for container
     else if (first.type == "binary") {skip_punc(")"); return first} // no need for container
-    else throw new Error(`${first} can't be at the beginning of a S-expression`) // Avoids bools corner case
+    else throw new Error(`${JSON.stringify(first)} can't be at the beginning of a S-expression`) // Avoids bools corner case
 
-    container.push(first, ...parse_until(")"))
+    let calls_content = parse_until(")")
+    if (calls_content[0].type == "call") container.push(first, calls_content)
+    else container.push(first, ...calls_content)
     skip_punc(")")
 
     return container
@@ -176,7 +178,8 @@ function lisp_parser(tokenStream) {
         let atom = parser()
         container.push(atom)} 
     }
-    return container
+    if (container.length == 1) return container[0]
+    else return container
   }
 
   function parse_params() {
