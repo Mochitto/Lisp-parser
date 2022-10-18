@@ -45,3 +45,9 @@ It's now fixed and ready to move to testing and writing the interpreter.
 I've read on how to build an interpreter, and I think I should be able to write a part of it soon!  
 Written some tests, even if there are still many corner cases!  
 I hope to be able to send the project tonight or tomorrow morning :)
+
+**16/10/2022**
+I've written tests and expanded the interpreter's capabilities. Now only lambda calls are missing :)
+
+**17/10/2022**
+Prepared a new file for the interview! I also think that for defun I need to write a compiler... I think the project will be on hold and later on rewritten in Typescript as an exercise!
